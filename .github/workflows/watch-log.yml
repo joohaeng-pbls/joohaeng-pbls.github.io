@@ -1,0 +1,21 @@
+name: watch-log
+on:
+  deployment_status:
+  workflow_run:
+    workflows: [pages-test]
+    types: [completed]
+permissions: {}
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 받은 이벤트 기록
+        env:
+          EV: ${{ github.event_name }}
+          ST: ${{ github.event.deployment_status.state }}
+          BY: ${{ github.event.deployment_status.creator.login }}
+          BYT: ${{ github.event.deployment_status.creator.type }}
+          ENVN: ${{ github.event.deployment.environment }}
+          WR: ${{ github.event.workflow_run.id }}
+          WRC: ${{ github.event.workflow_run.conclusion }}
+        run: echo "event=$EV state=$ST creator=$BY($BYT) env=$ENVN workflow_run=$WR conclusion=$WRC" | tee -a "$GITHUB_STEP_SUMMARY"

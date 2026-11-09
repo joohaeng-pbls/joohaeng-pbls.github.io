@@ -1,0 +1,80 @@
+name: pages-test
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: full = 전부 / exclude = 내부 파일 제외 / exclude-css = 제외 + css 폴더(양성 대조)
+        type: choice
+        options: [exclude, full, exclude-css]
+        default: exclude
+      timeout_ms:
+        description: deploy-pages 제한 시간(밀리초)
+        default: '1800000'
+      marker:
+        description: 배포물 /deploy-marker.txt 에 넣을 글
+        default: run
+      fail:
+        description: 빌드를 일부러 실패시킴(고장 난 작업표 시험)
+        type: boolean
+        default: false
+      site_ref:
+        description: 받을 사본 커밋
+        default: 8620cc83f652d98b96ea63c6cae9a9859e52fd4d
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: test
+      - uses: actions/checkout@v5
+        with:
+          repository: pebblous/pebblous.github.io
+          ref: ${{ inputs.site_ref }}
+          fetch-depth: 1
+          path: src
+      - name: 일부러 실패
+        if: ${{ inputs.fail }}
+        run: |
+          echo "고장 난 작업표 시험: 여기서 멈춤"
+          exit 1
+      - name: 배포물 담기
+        env:
+          MODE: ${{ inputs.mode }}
+          MARKER: ${{ inputs.marker }}
+        run: |
+          mkdir _site
+          if [ "$MODE" = full ]; then
+            rsync -a --exclude .git src/ _site/
+          else
+            rsync -a --exclude-from=test/.github/scripts/exclude.txt src/ _site/
+            if [ "$MODE" = exclude-css ]; then rm -rf _site/css; fi
+          fi
+          rm -f _site/CNAME
+          printf 'User-agent: *\nDisallow: /\n' > _site/robots.txt
+          printf '%s %s %s\n' "$MARKER" "$GITHUB_RUN_ID" "$(date -u +%FT%TZ)" > _site/deploy-marker.txt
+          echo "files=$(find _site -type f | wc -l) bytes=$(du -sb _site | cut -f1)" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: 제외 파일 참조 검사
+        if: ${{ inputs.mode != 'full' }}
+        run: python3 test/.github/scripts/refcheck.py src _site | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.d.outputs.page_url }}
+    steps:
+      - id: d
+        uses: actions/deploy-pages@v5
+        with:
+          timeout: ${{ inputs.timeout_ms }}
