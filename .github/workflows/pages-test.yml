@@ -63,7 +63,9 @@ jobs:
           echo "files=$(find _site -type f | wc -l) bytes=$(du -sb _site | cut -f1)" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: 제외 파일 참조 검사
         if: ${{ inputs.mode != 'full' }}
-        run: python3 test/.github/scripts/refcheck.py src _site | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          python3 test/.github/scripts/refcheck.py src _site --gate | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

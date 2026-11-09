@@ -5,7 +5,6 @@ tools/
 history/
 articles.d/
 docs/
-scripts/
 _workspace/
 __pycache__/
 hooks/
@@ -20,5 +19,4 @@ template/
 /.gitattributes
 /.gitignore
 /.nojekyll
-*.md
-*.py
+index.md

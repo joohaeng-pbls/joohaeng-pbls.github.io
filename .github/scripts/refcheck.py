@@ -13,7 +13,8 @@ def files(root):
 S, D = files(src), files(site)
 gone = S - D
 TEXT = ('.html', '.htm', '.xml', '.txt', '.json', '.js', '.css', '.webmanifest', '.svg')
-tok = re.compile(r'''(?:(?<=["'(=\s,])|^)((?:https?://blog\.pebblous\.ai)?[^\s"'()<>,]+?\.[A-Za-z0-9]{1,10})(?:[?#][^\s"'()<>]*)?(?=["')\s<>,]|$)''', re.M)
+# 따옴표·괄호·= 바로 뒤에서 시작해 따옴표·괄호에서 끝나는 값 하나만 센다(본문 속 파일 이름 언급은 제외)
+tok = re.compile(r'''(?<=["'(=])((?:https?://blog\.pebblous\.ai)?[^\s"'()<>,]+?\.[A-Za-z0-9]{1,10})(?:[?#][^\s"'()<>]*)?(?=["')])''')
 hits = collections.Counter(); where = collections.defaultdict(set)
 for rel in D:
     if not rel.endswith(TEXT):
@@ -40,3 +41,6 @@ print(f'뺀 파일을 가리키는 참조: 서로 다른 대상 {len(hits)}개 �
 for c, n in hits.most_common(40):
     ex = sorted(where[c])[:3]
     print(f'- {c} ×{n}  (예: {", ".join(ex)})')
+if hits and '--gate' in sys.argv:
+    print('::error::배포물에서 뺀 파일을 가리키는 참조가 있어 배포를 멈춥니다')
+    sys.exit(1)
