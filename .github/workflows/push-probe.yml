@@ -1,0 +1,10 @@
+name: push-probe
+on:
+  push:
+    branches: [main]
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "push 받음 ${{ github.sha }}"
