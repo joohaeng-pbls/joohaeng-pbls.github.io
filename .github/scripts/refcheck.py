@@ -26,6 +26,9 @@ for rel in D:
     base = os.path.dirname(rel)
     for m in tok.finditer(txt):
         r = m.group(1)
+        # 슬래시 없는 낱말(예: 태그 목록의 "CLAUDE.md")은 href=·src=·url(·함수 인자 자리일 때만 링크로 본다
+        if '/' not in r and not re.search(r'''(?:(?:href|src|poster|data-src)\s*=\s*["']?|\(\s*["']?)$''', txt[max(0, m.start() - 12):m.start()]):
+            continue
         if r.startswith(('http://', 'https://')):
             if not r.startswith('https://blog.pebblous.ai'):
                 continue
